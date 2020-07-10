@@ -16,8 +16,14 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.username')
-    group = serializers.ReadOnlyField(source='group.id')
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+        )
+    group = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='id'
+        )
 
     class Meta:
         fields = '__all__'
@@ -25,7 +31,10 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.username')
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+        )
     post_id = serializers.ReadOnlyField()
 
     class Meta:

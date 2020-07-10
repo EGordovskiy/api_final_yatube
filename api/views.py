@@ -7,10 +7,9 @@ from .serializers import (
     CommentSerializer, FollowSerializer,
     GroupSerializer, PostSerializer, UserSerializer
 )
-
+from rest_framework.response import Response
 from .permissions import IsAuthorOrReadOnly, IsProfileAuthorOrReadOnly
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -28,16 +27,14 @@ class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    http_method_names = ['get', 'post', 'head']
     filter_backends = [filters.SearchFilter]
     search_fields = ['=user__username', '=following__username']
 
     def perform_create(self, serializer):
-        try:
-            following = User.objects.get(
-                username=self.request.data.get('following')
-            )
-        except User.DoesNotExist:
-            raise ValidationError('The profile does not exist.')
+        get_object_or_404(User, username=self.request.user)
+        following = User.objects.get(
+            username=self.request.data.get('following'))
         user = self.request.user
         exist = Follow.objects.filter(
             user=user, following=following
@@ -48,12 +45,16 @@ class FollowViewSet(viewsets.ModelViewSet):
 
         if following != user:
             serializer.save(user=user, following=following)
+        else:
+            raise ValidationError("You can't subscribe to yourself.")
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupList(generics.ListCreateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    filterset_fields = ['=group__title']
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -63,9 +64,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthorOrReadOnly, IsAuthenticated]
+    permission_classes = [IsAuthorOrReadOnly, permissions.IsAuthenticated]
 
     def get_queryset(self):
         post = get_object_or_404(Post, pk=self.kwargs.get('post_id'))
