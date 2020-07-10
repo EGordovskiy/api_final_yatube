@@ -32,8 +32,7 @@ class FollowViewSet(viewsets.ModelViewSet):
     search_fields = ['=user__username', '=following__username']
 
     def perform_create(self, serializer):
-        get_object_or_404(User, username=self.request.user)
-        following = User.objects.get(
+        following = get_object_or_404(User,
             username=self.request.data.get('following'))
         user = self.request.user
         exist = Follow.objects.filter(
